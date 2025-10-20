@@ -10,3 +10,8 @@ class UserRegistration(BaseModel):
     name: str
     username: str
     password: str
+
+
+class RegisterLanguages(BaseModel):
+    known_language: str
+    target_language: str
