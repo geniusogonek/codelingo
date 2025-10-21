@@ -38,3 +38,12 @@ class Topic(Base):
 
     id = Column(Integer, autoincrement=True, primary_key=True, index=True)
     title = Column(String)
+
+
+class CorrectAnswer(Base):
+    __tablename__ = "correct_answers"
+
+    id = Column(Integer, autoincrement=True, primary_key=True, index=True)
+    programming_language = Column(String)
+    topic = Column(String)
+    answer = Column(String)

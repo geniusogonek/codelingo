@@ -9,11 +9,21 @@ from sqlalchemy.exc import IntegrityError
 
 from models import UserRegistration, UserLogin, RegisterLanguages
 from database.models import User
-from database.database import register_user, get_user, select_lessons, update_languages
+from database.database import (
+    register_user,
+    get_user,
+    select_lessons,
+    select_languages,
+    select_topics,
+    update_languages,
+    get_solution
+)
+
 from database.core import get_session, init_models
 
 from utils.jwt_module import encode_data
 from utils.hash_module import check_password
+from utils.code_equality_module import normalize_code
 
 from dependencies import get_current_user
 
@@ -76,7 +86,7 @@ async def register_languages(
         )
 
 
-@app.get("/lessons", response_class=JSONResponse)
+@app.get("/get-lessons-target", response_class=JSONResponse)
 async def get_lessons(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user)
@@ -97,6 +107,47 @@ async def get_lessons(
         }
         for lesson in lessons
     ]
+
+
+@app.get("/get-lessons-known", response_class=JSONResponse)
+async def get_lessons(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user.known_language:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Known language not set. Please register languages first."
+        )
+
+    lessons = await select_lessons(session=session, language=current_user.known_language)
+    return [
+        {
+            "topic": lesson.topic,
+            "explanation": lesson.explanation,
+            "example": lesson.example,
+            "exercise": lesson.exercise
+        }
+        for lesson in lessons
+    ]
+
+
+@app.get("/get-topics")
+async def get_topics(session: AsyncSession = Depends(get_session)):
+    topics = await select_topics(session=session)
+    return [topic.title for topic in topics]
+
+
+@app.get("/get-languages")
+async def get_languages(session: AsyncSession = Depends(get_session)):
+    languages = await select_languages(session=session)
+    return [language.title for language in languages]
+
+
+@app.get("/check-solution")
+async def check_solution(code: str, topic: str, language: str, session: AsyncSession = Depends(get_session)):
+    solution = await get_solution(session=session, topic=topic, language=language)
+    return {"result": normalize_code(code).strip() == solution.strip()}
 
 
 async def main():
