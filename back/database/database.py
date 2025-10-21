@@ -49,6 +49,9 @@ async def select_languages(session: AsyncSession) -> list[Language]:
     return lessons.scalars().all()
 
 
-async def get_solution(session: AsyncSession, topic: str, language: str) -> str:
-    solution = await session.execute(select(CorrectAnswer).where(CorrectAnswer.topic==topic and CorrectAnswer.programming_language==language))
-    return solution.one_or_none()
+async def get_solution(session: AsyncSession, topic: str, language: str) -> str | None:
+    solution = await session.execute(select(CorrectAnswer).where((CorrectAnswer.topic==topic) & (CorrectAnswer.programming_language==language)))
+    solution = solution.one_or_none()
+    if solution is not None:
+        return solution[0].answer
+    return None

@@ -1,9 +1,11 @@
 import asyncio
-from typing import List
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 from uvicorn import Server, Config
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
@@ -29,6 +31,14 @@ from dependencies import get_current_user
 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/login", response_class=JSONResponse)
@@ -145,9 +155,14 @@ async def get_languages(session: AsyncSession = Depends(get_session)):
 
 
 @app.get("/check-solution")
-async def check_solution(code: str, topic: str, language: str, session: AsyncSession = Depends(get_session)):
-    solution = await get_solution(session=session, topic=topic, language=language)
-    return {"result": normalize_code(code).strip() == solution.strip()}
+async def check_solution(
+    code: str,
+    topic: str,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    solution = await get_solution(session=session, topic=topic, language=current_user.target_language)
+    return {"result": normalize_code(code).replace("\n", "\\n").strip() == solution.strip().replace("/\\", current_user.name)}
 
 
 async def main():
